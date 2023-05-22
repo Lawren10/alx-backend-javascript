@@ -3,24 +3,18 @@ const { readFile } = require('fs');
 const printStats = (data) => {
   const dataList = data.split('\n').splice(1);
   const stats = { CS: [], SWE: [] };
-  let students = 0;
   for (const line of dataList) {
     const columns = line.split(',');
     if (columns[3] === 'CS') {
       stats.CS.push(columns[0]);
-      students += 1;
     } else if (columns[3] === 'SWE') {
       stats.SWE.push(columns[0]);
-      students += 1;
     }
   }
-  console.log(`Number of students: ${students}`);
-  for (const [key, value] of Object.entries(stats)) {
-    console.log(`Number of students in ${key}: ${value.length}. List: ${value.join(', ')}`);
-  }
+  return stats;
 };
 
-const countStudents = (file) => new Promise((resolve, reject) => {
+const readDatabase = (file) => new Promise((resolve, reject) => {
   readFile(file, 'utf-8', (err, data) => {
     if (err) {
       if (err.code === 'ENOENT') {
@@ -33,4 +27,4 @@ const countStudents = (file) => new Promise((resolve, reject) => {
   });
 });
 
-module.exports = countStudents;
+module.exports = readDatabase;

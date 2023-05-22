@@ -1,70 +1,55 @@
 const http = require('http');
+const url = require('url');
 const { readFile } = require('fs');
 
-const hostname = '127.0.0.1';
-const port = 1245;
+const printStats = (data) => {
+  const dataList = data.split('\n').splice(1);
+  const stats = { CS: [], SWE: [] };
+  let students = 0;
+  for (const line of dataList) {
+    const columns = line.split(',');
+    if (columns[3] === 'CS') {
+      stats.CS.push(columns[0]);
+      students += 1;
+    } else if (columns[3] === 'SWE') {
+      stats.SWE.push(columns[0]);
+      students += 1;
+    }
+  }
+  const out = [`Number of students: ${students}`];
+  for (const [key, value] of Object.entries(stats)) {
+    out.push(`Number of students in ${key}: ${value.length}. List: ${value.join(', ')}`);
+  }
+  return out;
+};
 
-function countStudents(fileName) {
-  const students = {};
-  const fields = {};
-  let length = 0;
-  return new Promise((resolve, reject) => {
-    readFile(fileName, (err, data) => {
-      if (err) {
-        reject(err);
-      } else {
-        let output = '';
-        const lines = data.toString().split('\n');
-        for (let i = 0; i < lines.length; i += 1) {
-          if (lines[i]) {
-            length += 1;
-            const field = lines[i].toString().split(',');
-            if (Object.prototype.hasOwnProperty.call(students, field[3])) {
-              students[field[3]].push(field[0]);
-            } else {
-              students[field[3]] = [field[0]];
-            }
-            if (Object.prototype.hasOwnProperty.call(fields, field[3])) {
-              fields[field[3]] += 1;
-            } else {
-              fields[field[3]] = 1;
-            }
-          }
-        }
-        const l = length - 1;
-        output += `Number of students: ${l}\n`;
-        for (const [key, value] of Object.entries(fields)) {
-          if (key !== 'field') {
-            output += `Number of students in ${key}: ${value}. `;
-            output += `List: ${students[key].join(', ')}\n`;
-          }
-        }
-        resolve(output);
+const countStudents = (file) => new Promise((resolve, reject) => {
+  readFile(file, 'utf-8', (err, data) => {
+    if (err) {
+      if (err.code === 'ENOENT') {
+        reject(new Error('Cannot load the database'));
       }
-    });
+      reject(err);
+    } else {
+      resolve(printStats(data));
+    }
   });
-}
+});
 
 const app = http.createServer((req, res) => {
-  res.statusCode = 200;
-  res.setHeader('Content-Type', 'text/plain');
-  if (req.url === '/') {
-    res.write('Hello Holberton School!');
-    res.end();
-  }
-  if (req.url === '/students') {
+  const reqUrl = url.parse(req.url).pathname;
+  if (reqUrl === '/') {
+    res.end('Hello Holberton School!');
+  } else if (reqUrl === '/students') {
     res.write('This is the list of our students\n');
-    countStudents(process.argv[2].toString()).then((output) => {
-      const outString = output.slice(0, -1);
-      res.end(outString);
-    }).catch(() => {
-      res.statusCode = 404;
-      res.end('Cannot load the database');
+    countStudents(process.argv[2]).then((data) => {
+      res.end(data.join('\n'));
+    }).catch((err) => {
+      res.end(err.message);
     });
   }
 });
 
-app.listen(port, hostname, () => {
-});
+app.listen(1245, '127.0.0.1', () => console.log('Server Started'));
 
 module.exports = app;
